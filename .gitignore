@@ -32,6 +32,5 @@
 *.app
 
 .idea/
-external/
 .DS_STORE
 cmake-build-debug
