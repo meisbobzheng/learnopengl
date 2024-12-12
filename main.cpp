@@ -2,6 +2,20 @@
 #include <SDL.h>
 #include <iostream>
 
+int gScreenWidth = 800;
+int gScreenHeight = 600;
+SDL_Window* gGraphicsApplicationWindow = nullptr;
+SDL_GLContext gOpenGLContext = nullptr;
+GLuint gGraphicsPipelineShaderProgram = 0;
+
+bool running = true;
+
+// VAO 1
+GLuint gVertexArrayObject = 0;
+
+// VBO 1
+GLuint gVertexBufferObject = 0;
+
 // Shader source code
 const char *vertexShaderSource = "#version 330 core\n"
     "in vec4 position;\n"
@@ -31,159 +45,172 @@ void DisplayInfo() {
     std::cout << "Shading Language: " << glGetString(GL_SHADING_LANGUAGE_VERSION) << std::endl;
 }
 
-SDL_Window* initWindow(SDL_GLContext& glContext) {
+void InitializeProgram() {
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         std::cout << "Failed to initialize SDL: " << SDL_GetError() << std::endl;
-        return nullptr;
+        exit(-1);
     }
 
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
-    SDL_Window* window = SDL_CreateWindow(
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+
+    gGraphicsApplicationWindow = SDL_CreateWindow(
         "LearnOpenGL", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-        800, 600, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE
+        gScreenWidth, gScreenHeight, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE
     );
 
-    if (!window) {
+    if (!gGraphicsApplicationWindow) {
         std::cout << "Failed to create SDL window: " << SDL_GetError() << std::endl;
-        return nullptr;
+        exit(-1);
     }
 
-    glContext = SDL_GL_CreateContext(window);
-    if (!glContext) {
+    gOpenGLContext = SDL_GL_CreateContext(gGraphicsApplicationWindow);
+    if (!gOpenGLContext) {
         std::cout << "Failed to create OpenGL context: " << SDL_GetError() << std::endl;
-        return nullptr;
+        exit(-1);
     }
 
     if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress)) {
         std::cout << "Failed to initialize GLAD" << std::endl;
-        return nullptr;
+        exit (-1);
     }
 
-    glViewport(0, 0, 800, 600);
-
-    return window;
+    glViewport(0, 0, gScreenWidth, gScreenHeight);
+    DisplayInfo();
 }
 
-void processInput(SDL_Event& event, bool& running) {
-    while (SDL_PollEvent(&event)) {
+void ProcessInput(bool& running) {
+    SDL_Event event;
+
+    while (SDL_PollEvent(&event) != 0) {
         if (event.type == SDL_QUIT ||(event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE)){
             running = false;
         }
     }
 }
 
-int main() {
-    SDL_GLContext glContext;
-    SDL_Window* window = initWindow(glContext);
-
-    if (!window) {
-        SDL_Quit();
-        return -1;
-    }
-
-    DisplayInfo();
-
-    int success;
-    char infoLog[512];
-
-    // Compile shaders and link shader programs
-    unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
-    glCompileShader(vertexShader);
-
-    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-    if (!success) {
-        glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
-    }
-
-    unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
-    glCompileShader(fragmentShader);
-
-    unsigned int fragmentShader2 = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader2, 1, &fragmentShaderSource2, NULL);
-    glCompileShader(fragmentShader2);
-
-    unsigned int shaderProgram = glCreateProgram();
-    glAttachShader(shaderProgram, vertexShader);
-    glAttachShader(shaderProgram, fragmentShader);
-    glLinkProgram(shaderProgram);
-
-    unsigned int shaderProgram2 = glCreateProgram();
-    glAttachShader(shaderProgram2, vertexShader);
-    glAttachShader(shaderProgram2, fragmentShader2);
-    glLinkProgram(shaderProgram2);
-
-    glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
-    glDeleteShader(fragmentShader2);
-
+void VertexSpecification() {
     // Define vertex data and buffers
-    float vertices[] = {
+    const std::vector<GLfloat> vertices {
         -0.9f, -0.5f, 0.0f,
         -0.0f, -0.5f, 0.0f,
         -0.45f, 0.5f, 0.0f,
     };
 
-    float vertices2[] = {
-        0.0f, -0.5f, 0.0f,
-        0.9f, -0.5f, 0.0f,
-        0.45f, 0.5f, 0.0f
-    };
+    glGenVertexArrays(1, &gVertexArrayObject);
+    glBindVertexArray(gVertexArrayObject);
 
-    unsigned int VBOs[2], VAOs[2];
-    glGenVertexArrays(2, VAOs);
-    glGenBuffers(2, VBOs);
-
-    glBindVertexArray(VAOs[0]);
-    glBindBuffer(GL_ARRAY_BUFFER, VBOs[0]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glGenBuffers(1, &gVertexBufferObject);
+    glBindBuffer(GL_ARRAY_BUFFER, gVertexBufferObject);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(GLfloat), vertices.data(), GL_STATIC_DRAW);
     glEnableVertexAttribArray(0);
-
-    glBindVertexArray(VAOs[1]);
-    glBindBuffer(GL_ARRAY_BUFFER, VBOs[1]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices2), vertices2, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
     glBindVertexArray(0);
+    glDisableVertexAttribArray(0);
+}
 
-    // Main loop
-    bool running = true;
-    SDL_Event event;
+GLuint CompileShader(GLuint type, const std::string& source) {
+    GLuint shaderObject = glCreateShader(type);
 
-    while (running) {
-        processInput(event, running);
+    const char* src = source.c_str();
+    glShaderSource(shaderObject, 1, &src, nullptr);
+    glCompileShader(shaderObject);
 
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+    int result;
+    glGetShaderiv(shaderObject, GL_COMPILE_STATUS, &result);
 
-        glUseProgram(shaderProgram);
-        glBindVertexArray(VAOs[0]);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+    if (result == GL_FALSE) {
+        int length;
+        glGetShaderiv(shaderObject, GL_INFO_LOG_LENGTH, &length);
+        char* errorMessages = new char[length];
+        glGetShaderInfoLog(shaderObject, length, &length, errorMessages);
 
-        glUseProgram(shaderProgram2);
-        glBindVertexArray(VAOs[1]);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
-
-        SDL_GL_SwapWindow(window);
+        if (type == GL_VERTEX_SHADER) {
+            std::cout << "Error compiling vertex shader" << errorMessages << std::endl;
+        } else if ( type == GL_FRAGMENT_SHADER) {
+            std::cout << "Error compiling fragment shader" << errorMessages << std::endl;
+        }
+        delete[] errorMessages;
+        glDeleteShader(shaderObject);
+        return 0;
     }
 
-    // Cleanup
-    glDeleteVertexArrays(2, VAOs);
-    glDeleteBuffers(2, VBOs);
-    glDeleteProgram(shaderProgram);
-    glDeleteProgram(shaderProgram2);
+    return shaderObject;
+}
 
-    SDL_GL_DeleteContext(glContext);
-    SDL_DestroyWindow(window);
+GLuint CreateShaderProgram(const std::string& vs, const std::string& fs) {
+    GLuint programObject = glCreateProgram();
+
+    GLuint vertexShader = CompileShader(GL_VERTEX_SHADER, vs);
+    GLuint fragmentShader = CompileShader(GL_FRAGMENT_SHADER, fs);
+
+    glAttachShader(programObject, vertexShader);
+    glAttachShader(programObject, fragmentShader);
+    glLinkProgram(programObject);
+
+    glValidateProgram(programObject);
+
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
+
+    return programObject;
+}
+
+void CreateGraphicsPipeline() {
+    gGraphicsPipelineShaderProgram = CreateShaderProgram(vertexShaderSource, fragmentShaderSource);
+}
+
+void PreDraw() {
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);
+
+    glViewport(0, 0, gScreenWidth, gScreenHeight);
+    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+    glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+
+    glUseProgram(gGraphicsPipelineShaderProgram);
+
+}
+
+void Draw() {
+    glBindVertexArray(gVertexArrayObject);
+    glBindBuffer(GL_ARRAY_BUFFER, gVertexBufferObject);
+
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+
+    glUseProgram(0);
+}
+
+void Cleanup() {
+    SDL_GL_DeleteContext(gOpenGLContext);
+    SDL_DestroyWindow(gGraphicsApplicationWindow);
     SDL_Quit();
+    glDeleteBuffers(1, &gVertexBufferObject);
+    glDeleteVertexArrays(1, &gVertexArrayObject);
 
+    glDeleteProgram(gGraphicsPipelineShaderProgram);
+}
+
+void MainLoop() {
+    // Main loop
+    while (running) {
+        ProcessInput(running);
+        PreDraw();
+        Draw();
+        SDL_GL_SwapWindow(gGraphicsApplicationWindow);
+    }
+}
+
+
+int main() {
+    InitializeProgram();
+    VertexSpecification();
+    CreateGraphicsPipeline();
+    MainLoop();
+    Cleanup();
     return 0;
 }
