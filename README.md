@@ -1,1 +1,1 @@
-https://learnopengl.com/Getting-started/Hello-Window
+https://learnopengl.com/
