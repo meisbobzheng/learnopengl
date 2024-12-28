@@ -1,5 +1,8 @@
 https://learnopengl.com/
 
+
+In cmake-build-debug:
+
 Initialize:
 `cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Debug`
 
