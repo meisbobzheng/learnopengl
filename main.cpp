@@ -16,6 +16,9 @@ GLuint gVertexArrayObject = 0;
 // VBO 1
 GLuint gVertexBufferObject = 0;
 
+// EBO
+GLuint gElementBufferObject = 0;
+
 // Shader source code
 const char *vertexShaderSource = "#version 330 core\n"
     "in vec4 position;\n"
@@ -96,9 +99,15 @@ void ProcessInput(bool& running) {
 void VertexSpecification() {
     // Define vertex data and buffers
     const std::vector<GLfloat> vertices {
-        -0.9f, -0.5f, 0.0f,
-        -0.0f, -0.5f, 0.0f,
-        -0.45f, 0.5f, 0.0f,
+        0.5f,  0.5f, 0.0f,
+        0.5f, -0.5f, 0.0f,
+        -0.5f, -0.5f, 0.0f,
+        -0.5f,  0.5f, 0.0f
+    };
+
+    const std::vector<GLuint> indices {
+        0, 1, 3,
+        1, 2, 3
     };
 
     glGenVertexArrays(1, &gVertexArrayObject);
@@ -106,10 +115,17 @@ void VertexSpecification() {
 
     glGenBuffers(1, &gVertexBufferObject);
     glBindBuffer(GL_ARRAY_BUFFER, gVertexBufferObject);
-    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(GLfloat), vertices.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER,  vertices.size() * sizeof(GLfloat), vertices.data(), GL_STATIC_DRAW);
+
+    glGenBuffers(1, &gElementBufferObject);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, gElementBufferObject);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), indices.data(), GL_STATIC_DRAW);
+
+
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
     glBindVertexArray(0);
+
     glDisableVertexAttribArray(0);
 }
 
@@ -143,10 +159,10 @@ GLuint CompileShader(GLuint type, const std::string& source) {
 }
 
 GLuint CreateShaderProgram(const std::string& vs, const std::string& fs) {
-    GLuint programObject = glCreateProgram();
+    const GLuint programObject = glCreateProgram();
 
-    GLuint vertexShader = CompileShader(GL_VERTEX_SHADER, vs);
-    GLuint fragmentShader = CompileShader(GL_FRAGMENT_SHADER, fs);
+    const GLuint vertexShader = CompileShader(GL_VERTEX_SHADER, vs);
+    const GLuint fragmentShader = CompileShader(GL_FRAGMENT_SHADER, fs);
 
     glAttachShader(programObject, vertexShader);
     glAttachShader(programObject, fragmentShader);
@@ -173,14 +189,16 @@ void PreDraw() {
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
     glUseProgram(gGraphicsPipelineShaderProgram);
-
 }
 
 void Draw() {
     glBindVertexArray(gVertexArrayObject);
-    glBindBuffer(GL_ARRAY_BUFFER, gVertexBufferObject);
 
-    glDrawArrays(GL_TRIANGLES, 0, 3);
+    // glBindBuffer(GL_ARRAY_BUFFER, gVertexBufferObject);
+    // glDrawArrays(GL_TRIANGLES, 0, 3);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, gElementBufferObject);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
     glUseProgram(0);
 }
