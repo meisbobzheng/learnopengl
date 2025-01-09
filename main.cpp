@@ -1,6 +1,8 @@
 #include <glad/glad.h>
 #include <SDL.h>
 #include <iostream>
+#include <vector>
+#include <string>
 
 int gScreenWidth = 800;
 int gScreenHeight = 600;
@@ -31,7 +33,7 @@ const char *fragmentShaderSource = "#version 330 core\n"
     "out vec4 color;\n"
     "void main()\n"
     "{\n"
-    "    color = vec4(0.5f, 0.5f, 0.0f, 1.0f);\n"
+    "    color = vec4(1.0f, 0.5f, 0.0f, 1.0f);\n"
     "}\0";
 
 const char *fragmentShaderSource2 = "#version 330 core\n"

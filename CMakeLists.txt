@@ -1,8 +1,13 @@
 cmake_minimum_required(VERSION 3.16)
 project(learn_opengl)
 
+# Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_OSX_ARCHITECTURES arm64)
+
+# Platform-specific architecture setting
+if(APPLE)
+    set(CMAKE_OSX_ARCHITECTURES arm64)
+endif()
 
 # Add SDL2 as a subdirectory
 add_subdirectory(external/sdl-2.3)
@@ -21,9 +26,11 @@ target_include_directories(learn_opengl PRIVATE ${GLAD_INCLUDE_DIR} external/sdl
 # Link libraries
 target_link_libraries(learn_opengl SDL2-static glad)
 
-# Link macOS frameworks
+# Platform-specific OpenGL linking
 if(APPLE)
     target_link_libraries(learn_opengl "-framework OpenGL" "-framework Cocoa" "-framework IOKit")
+elseif(UNIX)
+    target_link_libraries(learn_opengl GL X11 pthread dl)
 endif()
 
 # Set output directory
